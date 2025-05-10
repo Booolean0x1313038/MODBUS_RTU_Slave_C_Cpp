@@ -1,0 +1,37 @@
+#include "../MODBUS_RTU_Slave.h"
+
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
+void _Boolean::Communication::MODBUS_RTU_Slave::_GenerateExceptionFrame()
+#else
+void _MODBUS_RTU_Slave_GenerateExceptionFrame(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR)
+#endif
+{
+    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[0] = MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_DeviceAddress;
+    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[1] = MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_FunctionCode + 0x80;
+    switch (MODBUS_RTU_SLAVE_THISPTR->_LastResult)
+    {
+    case MODBUS_RTU_RESULT_FUNCTIONCODE_IS_NOT_SUPPORT:
+        MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[2] = MODBUS_RTU_EXCEPTIONCODE_INVALID_FUNCTIONCODE;
+        break;
+    case MODBUS_RTU_RESULT_REGISTER_NOT_EXIST:
+    case MODBUS_RTU_RESULT_REGISTER_NOT_READABLE:
+    case MODBUS_RTU_RESULT_REGISTER_NOT_WRITEABLE:
+        MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[2] = MODBUS_RTU_EXCEPTIONCODE_INVALID_REGISTER_ADDRESS;
+        break;
+    case MODBUS_RTU_RESULT_REGISTER_OUT_OF_RANGE:
+    case MODBUS_RTU_RESULT_WRITE_SINGLE_COIL_DATA_IS_INCORRECT:
+        MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[2] = MODBUS_RTU_EXCEPTIONCODE_INVALID_REQUEST_VALUE;
+        break;
+    default:
+        MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength = 0;
+        return;
+    }
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
+    uint16_t crcValue = CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
+#else
+    uint16_t crcValue = MODBUS_RTU_Slave_CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
+#endif
+    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[3] = crcValue & 0xFF;
+    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[3] = crcValue >> 8;
+    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength = 5;
+}
