@@ -1,16 +1,7 @@
 #ifndef __MODBUS_RTU_SLAVE_H__
 #define __MODBUS_RTU_SLAVE_H__
 
-#include <stdbool.h>
 #include "MODBUS_RTU_Slave_Configuration.h"
-
-typedef unsigned short uint16_t;
-typedef unsigned char uint8_t;
-typedef uint16_t MODBUS_RTU_Register_UINT16;
-typedef uint8_t MODBUS_RTU_RegisterAttribute;
-#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-typedef unsigned char MODBUS_RTU_Register_BIT;
-#endif
 
 /// @brief 功能码
 typedef enum
@@ -138,7 +129,7 @@ typedef enum
     /// @brief 线圈或离散输入
     MODBUS_RTU_REGISTER_TYPE_BIT = 1,
     /// @brief 16 字节寄存器
-    MODBUS_RTU_REGISTER_TYPE_UINT16,
+    MODBUS_RTU_REGISTER_TYPE_16BITS,
 } MODBUS_RTU_Register_Type;
 
 /// @brief 地址连续的若干寄存器
@@ -147,18 +138,18 @@ typedef struct
     /// @brief 寄存器 Array
     const void *Registers;
     /// @brief 寄存器属性 Array
-    const uint8_t *RegistersAttribute;
+    const MODBUS_RTU_Register_Attribute *RegistersAttribute;
     /// @brief 寄存器起始的地址
-    uint16_t FirstRegisterAddress;
+    MODBUS_RTU_RegisterAddress FirstRegisterAddress;
     /// @brief Sizeof (寄存器 Array)
-    uint16_t Bytes;
+    MODBUS_RTU_DataLength Bytes;
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
     /// @brief 寄存器类型
     MODBUS_RTU_Register_Type RegisterType;
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
     /// @brief 需要操作的次数
-    uint8_t WriteTimes;
+    MODBUS_RTU_WriteTimeCounter WriteTimes;
 #endif
 } MODBUS_RTU_ContiguousRegistersGroup;
 
@@ -169,62 +160,60 @@ typedef struct
 #define MODBUS_RTU_SLAVE_THISPTR this
 namespace _Boolean::Communication
 {
-    class MODBUS_RTU_Slave
-    {
+class MODBUS_RTU_Slave
+{
 #ifdef MODBUS_RTU_SLAVE_DEBUG
-    public:
+public:
 #else
-    private:
+private:
 #endif
 #else
-typedef struct
-{
+    typedef struct
+    {
 #endif
 
         /// @brief 设备地址
-        uint8_t _DeviceAddress;
-        /// @brief 连续寄存器区
-        MODBUS_RTU_ContiguousRegistersGroup *_ContiguousRegistersGroupArray;
+        MODBUS_RTU_DeviceAddress _DeviceAddress;
         /// @brief 连续寄存器区的数量
-        uint8_t _ContiguousRegistersGroupArrayLength;
+        ContiguousRegistersLength _ContiguousRegistersGroupArrayLength;
         /// @brief 返回数据
-        uint8_t _ReturnFrame[MODBUS_RTU_MAX_LENGTH];
+        MODBUS_RTU_Data _ReturnFrame[MODBUS_RTU_MAX_LENGTH];
         /// @brief 返回帧的长度
-        uint16_t _ReturnFrameLength;
+        MODBUS_RTU_DataLength _ReturnFrameLength;
         /// @brief 上次操作的结果
         MODBUS_RTU_ResultCode _LastResult;
+        /// @brief 连续寄存器区
+        MODBUS_RTU_ContiguousRegistersGroup *_ContiguousRegistersGroupArray;
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
         /// @brief 上次收到的数据
-        uint8_t _LastRecvFrame[MODBUS_RTU_MAX_LENGTH - 4]; // 存储的数据不包括 设备地址(00) 操作码(01) CRC(-2 -1)
+        MODBUS_RTU_Data _LastRecvFrame[MODBUS_RTU_MAX_LENGTH - 4]; // 存储的数据不包括 设备地址(00) 操作码(01) CRC(-2 -1)
         /// @brief 上次收到的数据的长度
-        uint16_t _LastRecvFrameLength;
+        MODBUS_RTU_DataLength _LastRecvFrameLength;
         /// @brief 连续收到相同数据的次数, 如果不是写入操作则是 0, 不相同则是 1, 相同则是 2, 3, ...
-        uint8_t _Counter_RecvDataIsSame;
+        MODBUS_RTU_WriteTimeCounter _Counter_RecvDataIsSame;
 #endif
 
         /// @brief 解析_设备地址 (FromFrame)
-        uint8_t _Prase_RequestFrame_DeviceAddress;
+        MODBUS_RTU_DeviceAddress _Prase_RequestFrame_DeviceAddress;
         /// @brief 解析_功能码 (FromFrame)
-        uint8_t _Prase_RequestFrame_FunctionCode;
+        MODBUS_RTU_FunctionCodes _Prase_RequestFrame_FunctionCode;
         /// @brief 解析_寄存器地址 (FromFrame)
-        uint16_t _Prase_RequestFrame_RegisterAddress;
+        MODBUS_RTU_RegisterAddress _Prase_RequestFrame_RegisterAddress;
         /// @brief 解析_请求的寄存器数 (FromFrame)
-        uint16_t _Prase_RequestFrame_RequestAmount;
+        MODBUS_RTU_RegisterAmount _Prase_RequestFrame_RequestAmount;
         /// @brief 解析_接收帧的预期长度 (字节数)
-        uint16_t _Prase_Calculate_RequestFrameBytes;
+        MODBUS_RTU_DataLength _Prase_Calculate_RequestFrameBytes;
         /// @brief 解析_目标寄存器区
         int _Prase_Calculate_TargetCoiledRegistersAreaIndex;
-        /// @brief 解析_第一个要操作的寄存器的相对于所在区域首个寄存器的偏移地址
-        uint16_t _Prase_Calculate_TargetRegistersMemoryAddressOffset;
         /// @brief 解析_要操作的寄存器的字节数
-        uint16_t _Prase_Calculate_TargetRegistersBytes;
+        MODBUS_RTU_RegisterAmount _Prase_Calculate_TargetRegistersBytes;
         /// @brief 解析_操作_写入
         bool _Prase_Calculate_FunctionCodeAttribute_Write;
         /// @brief 解析_操作_多个
         bool _Prase_Calculate_FunctionCodeAttribute_Multiple;
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
         /// @brief 解析_位偏移
-        uint16_t _Prase_Calculate_TargetRegistersBitOffset;
+        MODBUS_RTU_BitsOffset _Prase_Calculate_TargetRegistersBitOffset;
         /// @brief 解析_操作_16位寄存器
         bool _Prase_Calculate_FunctionCodeAttribute_16Bits;
 #endif
@@ -234,37 +223,25 @@ typedef struct
 #endif
 
 #ifndef MODBUS_RTU_SLAVE_BIG_ENDIAN
-    /// @brief 大小端转换
-    /// @param 要转换的 16bit 值
-    /// @return 转换后的值
-    inline uint16_t _ToBigEndian(uint16_t value) { return (value >> 8) | (value << 8); }
+    inline MODBUS_RTU_Register_16Bits _ToBigEndian(MODBUS_RTU_Register_16Bits value) { return (value >> 8) | (value << 8); }
 #endif
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-    /// @brief 根据功能码获得其特性
-    /// @param code 功能码
-    /// @return 特性码
-    uint8_t _GetFunctionCodeAttribute(const uint8_t code);
-    /// @brief 生成异常返回帧
+    MODBUS_RTU_FunctionCodeAttribute _GetFunctionCodeAttribute(const MODBUS_RTU_FunctionCodes code);
     void _GenerateExceptionFrame();
-
 public:
 #else
-    /// @brief 根据功能码获得其特性
-    /// @param code 功能码
-    /// @return 特性码
-    uint8_t _MODBUS_RTU_Slave_GetFunctionCodeAttribute(const uint8_t code);
-    /// @brief 生成异常返回帧
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    void _MODBUS_RTU_Slave_GenerateExceptionFrame(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR);
+MODBUS_RTU_FunctionCodeAttribute _MODBUS_RTU_Slave_GetFunctionCodeAttribute(const MODBUS_RTU_FunctionCodes code);
+void _MODBUS_RTU_Slave_GenerateExceptionFrame(MODBUS_RTU_Slave *thisPtr);
 #endif
 
-#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-    /// @brief 构造函数
+    /// @brief 初始化
+    /// @param thisPtr 实体
     /// @param deviceAddress 本机地址
     /// @param coiledRegisters 寄存器区 Array
     /// @param coiledRegistersAmount 寄存器区的数量
-    MODBUS_RTU_Slave(uint8_t deviceAddress, MODBUS_RTU_ContiguousRegistersGroup *coiledRegisters, uint8_t coiledRegistersAmount);
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
+    MODBUS_RTU_Slave(MODBUS_RTU_DeviceAddress deviceAddress, MODBUS_RTU_ContiguousRegistersGroup *coiledRegisters, ContiguousRegistersLength coiledRegistersAmount);
     /// @brief 检查 MODBUS RTU Request Frame Head,
     /// @details 校验地址是否是本设备;
     /// @details 校验功能码是否受支持
@@ -276,117 +253,53 @@ public:
     /// @param dataPtr 接收到的数据
     /// @param length 数据长度, 至少 6 Bytes
     /// @return 解析通过
-    bool PraseHeader(const uint8_t *dataPtr, const uint8_t length);
+    bool PraseHeader(const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length);
     /// @brief 执行操作
     /// @param dataPtr 接收到的数据
     /// @param length 数据长度
-    bool ProcessData(const uint8_t *dataPtr, const uint16_t length);
+    bool ProcessData(const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length);
     /// @brief 执行操作
     /// @param dataPtr 接收到的数据
     /// @param length 数据长度
-    static void InitializeContiguousRegistersGroup(MODBUS_RTU_ContiguousRegistersGroup *group, const void *registerArray, const uint16_t registerArrayLength, const uint8_t *attributeArray, const uint16_t firstRegisterAddress
+    static void InitializeContiguousRegistersGroup(MODBUS_RTU_ContiguousRegistersGroup* group, const void* registerArray,const ContiguousRegistersLength registerArrayLength, const MODBUS_RTU_Register_Attribute* attributeArray, const MODBUS_RTU_RegisterAddress firstRegisterAddress
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
-                                                   ,
-                                                   const uint8_t writeTimes
+                                                   , const MODBUS_RTU_WriteTimeCounter writeTimes
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                                                   ,
-                                                   const MODBUS_RTU_Register_Type type
+                                                   , const MODBUS_RTU_Register_Type type
 #endif
-    );
-    /// @brief 计算 CRC
-    /// @param data 数据源
-    /// @param length 数据源长度
-    /// @return CRC
-    static uint16_t CalculateCRC(const uint8_t *data, const uint16_t length);
-    /// @brief 清空返回帧
+                                                   );
+    static MODBUS_RTU_Register_16Bits CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length);
     void ClearReturnFrame();
-    /// @brief 获取最后操作的结果
-    /// @return 操作结果
     inline MODBUS_RTU_ResultCode GetLastResult() { return this->_LastResult; }
-    /// @brief 获取请求帧的期望长度 在解析帧头之后调用
-    /// @return 预期长度 (Bytes)
-    inline uint16_t GetRequestFrameLength() { return this->_Prase_Calculate_RequestFrameBytes; }
-    /// @brief 获取返回帧的长度 在解析帧头失败或处理数据结束后调用
-    /// @return 长度 (Bytes)
-    inline uint16_t GetReturnFrameLength() { return this->_ReturnFrameLength; }
-    /// @brief 获取返回帧的内存地址
-    /// @return 返回帧的内存首地址
+    inline MODBUS_RTU_DataLength GetRequestFrameLength() { return this->_Prase_Calculate_RequestFrameBytes; }
+    inline MODBUS_RTU_DataLength GetReturnFrameLength() { return this->_ReturnFrameLength; }
     inline const unsigned char *GetReturnData() { return this->_ReturnFrame; }
-    /// @brief 获取设备 MODBUS 地址
-    /// @return 设备地址
-    inline uint8_t GetDeviceAddress() { return this->_DeviceAddress; }
+    inline MODBUS_RTU_DeviceAddress GetDeviceAddress() { return this->_DeviceAddress; }
 #else
-    /// @brief 初始化
-    /// @param MODBUS_RTU_SLAVE_THISPTR 实体
-    /// @param deviceAddress 本机地址
-    /// @param coiledRegisters 寄存器区 Array
-    /// @param coiledRegistersAmount 寄存器区的数量
-    void MODBUS_RTU_Slave_Initialize(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, uint8_t deviceAddress, MODBUS_RTU_ContiguousRegistersGroup *coiledRegisters, uint8_t coiledRegistersAmount);
-    /// @brief 解析帧头
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    /// @param dataPtr 接收帧
-    /// @param length 接收帧长度
-    /// @return 解析成功
-    bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, const uint8_t *dataPtr, const uint8_t length);
-    /// @brief 处理数据
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    /// @param dataPtr 接收帧
-    /// @param length 接收帧长度
-    /// @return 操作成功
-    bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, const uint8_t *dataPtr, const uint16_t length);
-    /// @brief 初始化一个连续寄存器组
-    /// @param group 要初始化的组
-    /// @param registerArray 寄存器数组
-    /// @param registerArrayLength 寄存器数组中元素的数量
-    /// @param attributeArray 寄存器属性数组
-    /// @param firstRegisterAddress 寄存器组第一个寄存器的 MODBUS 地址
-    /// @param writeTimes 写入时要连续写入的次数
-    /// @param type 寄存器组的类型
-    void MODBUS_RTU_Slave_InitializeContiguousRegistersGroup(MODBUS_RTU_ContiguousRegistersGroup *group, const void *registerArray, const uint16_t registerArrayLength, const uint8_t *attributeArray, const uint16_t firstRegisterAddress
+void MODBUS_RTU_Slave_Initialize(MODBUS_RTU_Slave *thisPtr, MODBUS_RTU_DeviceAddress deviceAddress, MODBUS_RTU_ContiguousRegistersGroup *coiledRegisters, ContiguousRegistersLength coiledRegistersAmount);
+bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *thisPtr, const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length);
+bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *thisPtr, const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length);
+void MODBUS_RTU_Slave_InitializeContiguousRegistersGroup(MODBUS_RTU_ContiguousRegistersGroup* group, const void* registerArray,const ContiguousRegistersLength registerArrayLength, const MODBUS_RTU_Register_Attribute* attributeArray, const MODBUS_RTU_RegisterAddress firstRegisterAddress
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
-                                                             ,
-                                                             const uint8_t writeTimes
+                                                         , const MODBUS_RTU_WriteTimeCounter writeTimes
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                                                             ,
-                                                             const MODBUS_RTU_Register_Type type
+                                                         , const MODBUS_RTU_Register_Type type
 #endif
-    );
-    /// @brief 计算 CRC
-    /// @param data 数据源
-    /// @param length 数据源长度
-    /// @return CRC
-    uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t length);
-    /// @brief 清空返回帧
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    void MODBUS_RTU_Slave_ClearReturnFrame(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR);
-    /// @brief 获取最后操作的结果
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    /// @return 操作结果
-    inline MODBUS_RTU_ResultCode MODBUS_RTU_Slave_GetLastResult(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR) { return MODBUS_RTU_SLAVE_THISPTR->_LastResult; }
-    /// @brief 获取请求帧的期望长度 在解析帧头之后调用
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    /// @return 预期长度 (Bytes)
-    inline uint16_t MODBUS_RTU_Slave_GetRequestFrameLength(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR) { return MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes; }
-    /// @brief 获取返回帧的长度 在解析帧头失败或处理数据结束后调用
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的寄存器
-    /// @return 长度 (Bytes)
-    inline uint16_t MODBUS_RTU_Slave_GetReturnFrameLength(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR) { return MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength; }
-    /// @brief 获取返回帧的内存地址
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    /// @return 返回帧的内存首地址
-    inline const unsigned char *MODBUS_RTU_Slave_GetReturnData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR) { return MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame; }
-    /// @brief 获取设备 MODBUS 地址
-    /// @param MODBUS_RTU_SLAVE_THISPTR 要操作的结构体
-    /// @return 设备地址
-    inline uint8_t MODBUS_RTU_Slave_GetDeviceAddress(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR) { return MODBUS_RTU_SLAVE_THISPTR->_DeviceAddress; }
+                                                         );
+MODBUS_RTU_Register_16Bits MODBUS_RTU_Slave_CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length);
+void MODBUS_RTU_Slave_ClearReturnFrame(MODBUS_RTU_Slave *thisPtr);
+inline MODBUS_RTU_ResultCode MODBUS_RTU_Slave_GetLastResult(MODBUS_RTU_Slave *thisPtr) { return thisPtr->_LastResult; }
+inline MODBUS_RTU_DataLength MODBUS_RTU_Slave_GetRequestFrameLength(MODBUS_RTU_Slave *thisPtr) { return thisPtr->_Prase_Calculate_RequestFrameBytes; }
+inline MODBUS_RTU_DataLength MODBUS_RTU_Slave_GetReturnFrameLength(MODBUS_RTU_Slave *thisPtr) { return thisPtr->_ReturnFrameLength; }
+inline const unsigned char *MODBUS_RTU_Slave_GetReturnData(MODBUS_RTU_Slave *thisPtr) { return thisPtr->_ReturnFrame; }
+inline MODBUS_RTU_DeviceAddress MODBUS_RTU_Slave_GetDeviceAddress(MODBUS_RTU_Slave *thisPtr) { return thisPtr->_DeviceAddress; }
 #endif
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
 };
-}
-;
+};
 #endif
 #endif // __MODBUS_RTU_SLAVE_H__
 

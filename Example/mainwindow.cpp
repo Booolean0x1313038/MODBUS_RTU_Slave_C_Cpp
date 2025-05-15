@@ -47,34 +47,43 @@ MainWindow::MainWindow(QWidget *parent)
 
 #pragma region { // 初始化寄存器
     memset(_Registers_Device, 0, sizeof(_Registers_Device));
-    memset(_RegistersAttribute_Device, MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE, 7);
+    for (int i = 0; i < MODBUS_REGISTER_DEVICEADDRESS; ++i)
+    {
+        _RegistersAttribute_Device[i] = MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE;
+    }
+    for (int i = MODBUS_REGISTER_DEVICEADDRESS; i < MODBUS_REGISTERS_DEVICE_AMOUNT; ++i)
+    {
+        _RegistersAttribute_Device[i] = (MODBUS_RTU_Register_Attribute)(MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE | MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE);
+    }
     _Registers_Device[6] = LED_TOTAL_COUNT;
     _RegistersAttribute_Device[MODBUS_REGISTER_SAVECONFIGURATION] = MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE;
-    memset(_RegistersAttribute_Device + MODBUS_REGISTER_DEVICEADDRESS, MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE | MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE, MODBUS_REGISTERS_DEVICE_AMOUNT - MODBUS_REGISTER_DEVICEADDRESS);
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
     _Boolean::Communication::MODBUS_RTU_Slave::InitializeContiguousRegistersGroup(
 #else
     MODBUS_RTU_Slave_InitializeContiguousRegistersGroup(
 #endif
-        _CoiledRegistersArray, _Registers_Device, MODBUS_REGISTERS_DEVICE_AMOUNT, _RegistersAttribute_Device, MODBUS_REGISTERS_DEVICE_FIRSTADDRESS
+        _CoiledRegistersArray, _Registers_Device, (ContiguousRegistersLength)MODBUS_REGISTERS_DEVICE_AMOUNT, _RegistersAttribute_Device, (ContiguousRegistersLength)MODBUS_REGISTERS_DEVICE_FIRSTADDRESS
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
                                                                                   ,2
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
 
-                                                                                  ,MODBUS_RTU_REGISTER_TYPE_UINT16
+                                                                                  ,MODBUS_RTU_REGISTER_TYPE_16BITS
 #endif
                                                                                   );
 
     memset(_Registers_Gradient, 0, sizeof(_Registers_Gradient));
     _RegistersAttribute_Gradient[0] = MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE;
-    memset(_RegistersAttribute_Gradient + 1, MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE | MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE, MODBUS_REGISTERS_GRADIENT_AMOUNT - 1);
+    for (int i = 1; i < MODBUS_REGISTERS_GRADIENT_AMOUNT; ++i)
+    {
+        _RegistersAttribute_Gradient[i] = (MODBUS_RTU_Register_Attribute)(MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE | MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE);
+    }
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
     _Boolean::Communication::MODBUS_RTU_Slave::InitializeContiguousRegistersGroup(
 #else
     MODBUS_RTU_Slave_InitializeContiguousRegistersGroup(
 #endif
-        _CoiledRegistersArray + 1, _Registers_Gradient, MODBUS_REGISTERS_GRADIENT_AMOUNT, _RegistersAttribute_Gradient, MODBUS_REGISTERS_GRADIENT_FIRSTADDRESS
+        _CoiledRegistersArray + 1, _Registers_Gradient, (ContiguousRegistersLength)MODBUS_REGISTERS_GRADIENT_AMOUNT, _RegistersAttribute_Gradient, (ContiguousRegistersLength)MODBUS_REGISTERS_GRADIENT_FIRSTADDRESS
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
                                                                                   ,1
 #endif
@@ -86,20 +95,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     memset(_Registers_DirectColor, 0, sizeof(_Registers_DirectColor));
     _RegistersAttribute_DirectColor[0] = MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE;
-    memset(_RegistersAttribute_DirectColor + 1, MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE | MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE, MODBUS_REGISTERS_DIRECTCOLOR_AMOUNT - 1);
-
+    for (int i = 1; i < MODBUS_REGISTERS_DIRECTCOLOR_AMOUNT; ++i)
+    {
+        _RegistersAttribute_DirectColor[i] = (MODBUS_RTU_Register_Attribute)(MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE | MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE);
+    }
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
     _Boolean::Communication::MODBUS_RTU_Slave::InitializeContiguousRegistersGroup(
 #else
     MODBUS_RTU_Slave_InitializeContiguousRegistersGroup(
 #endif
-        _CoiledRegistersArray + 2, _Registers_DirectColor, MODBUS_REGISTERS_DIRECTCOLOR_AMOUNT, _RegistersAttribute_DirectColor, MODBUS_REGISTERS_DIRECTCOLOR_FIRSTADDRESS
+        _CoiledRegistersArray + 2, _Registers_DirectColor, (ContiguousRegistersLength)MODBUS_REGISTERS_DIRECTCOLOR_AMOUNT, _RegistersAttribute_DirectColor, (ContiguousRegistersLength)MODBUS_REGISTERS_DIRECTCOLOR_FIRSTADDRESS
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
                                                                                   ,1
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
 
-                                                                                  ,MODBUS_RTU_REGISTER_TYPE_UINT16
+                                                                                  ,MODBUS_RTU_REGISTER_TYPE_16BITS
 #endif
                                                                                   );
 
@@ -120,7 +131,7 @@ MainWindow::MainWindow(QWidget *parent)
         ui->tableWidget_RegistersAreas->setItem(i, 0, col0);
         ui->tableWidget_RegistersAreas->setItem(i, 1, col1);
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-        QTableWidgetItem* col2 = new QTableWidgetItem(_CoiledRegistersArray[i].RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16 ? "UINT16" : "1Bit");
+        QTableWidgetItem* col2 = new QTableWidgetItem(_CoiledRegistersArray[i].RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS ? "UINT16" : "1Bit");
         col2->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
         ui->tableWidget_RegistersAreas->setItem(i, 2, col2);
 #endif
@@ -192,8 +203,6 @@ void MainWindow::SLOT_PushButton_Prase_Clicked()
 #endif
                                                                                   , 4).toUpper()));
 
-        ui->tableWidget_Result->setItem(8, 0, new QTableWidgetItem("TargetRegisterOffsetAddress 目标寄存器偏移地址"));
-        ui->tableWidget_Result->setItem(8, 1, new QTableWidgetItem("0x" + QString("%1 %2").arg(_MODBUS_RTU_Slave->_Prase_Calculate_TargetRegistersMemoryAddressOffset, 4, 16, '0').arg(_MODBUS_RTU_Slave->_Prase_Calculate_TargetRegistersMemoryAddressOffset, 4).toUpper()));
         ui->tableWidget_Result->setItem(9, 0, new QTableWidgetItem("TargetRegistersBytes        目标字节数"));
         ui->tableWidget_Result->setItem(9, 1, new QTableWidgetItem("0x" + QString("%1 %2").arg(_MODBUS_RTU_Slave->_Prase_Calculate_TargetRegistersBytes, 4, 16, '0').arg(_MODBUS_RTU_Slave->_Prase_Calculate_TargetRegistersBytes, 4).toUpper()));
         ui->tableWidget_Result->setItem(10, 0, new QTableWidgetItem("BitOffset                   位偏移"));
@@ -339,7 +348,7 @@ void MainWindow::ShowRegisterArea(int index)
         QTableWidgetItem* col0 = new QTableWidgetItem("0x" + (QString("%1 %2").arg(i, 4, 16, '0').arg(i, 4).toUpper()));
         int regAddr = area->FirstRegisterAddress + (i <<
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                                                    (area->RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16 ?
+                                                    (area->RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS ?
 #endif
                                                          0
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
@@ -362,7 +371,7 @@ void MainWindow::ShowRegisterArea(int index)
         }
         unsigned short data =
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-            area->RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16 ?
+            area->RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS ?
 #endif
                 ((unsigned short*)area->Registers)[i]
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
@@ -371,7 +380,7 @@ void MainWindow::ShowRegisterArea(int index)
             ;
         QTableWidgetItem* col3 = new QTableWidgetItem("0x" + QString("%1").arg(data,
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                                                                               area->RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16 ?
+                                                                               area->RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS ?
 #endif
                                                                                    4
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
@@ -380,7 +389,7 @@ void MainWindow::ShowRegisterArea(int index)
                                                                                , 16, '0').toUpper() +
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                                                      ((area->RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16) ? "" : " 0b " +  QString("%1 %2").arg(data >> 4 & 0x0F, 4, 2, '0').arg(data & 0x0F, 4, 2, '0')) +
+                                                      ((area->RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS) ? "" : " 0b " +  QString("%1 %2").arg(data >> 4 & 0x0F, 4, 2, '0').arg(data & 0x0F, 4, 2, '0')) +
 #endif
                                                       QString(" %1").arg(data, 4));
         col0->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);

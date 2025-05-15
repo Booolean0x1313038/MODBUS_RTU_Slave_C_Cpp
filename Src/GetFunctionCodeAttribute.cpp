@@ -1,13 +1,13 @@
 #include "../MODBUS_RTU_Slave.h"
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-uint8_t _Boolean::Communication::MODBUS_RTU_Slave::_GetFunctionCodeAttribute(const uint8_t code)
+MODBUS_RTU_FunctionCodeAttribute _Boolean::Communication::MODBUS_RTU_Slave::_GetFunctionCodeAttribute(const MODBUS_RTU_FunctionCodes code)
 #else
-uint8_t _MODBUS_RTU_Slave_GetFunctionCodeAttribute(const uint8_t code)
+MODBUS_RTU_FunctionCodeAttribute _MODBUS_RTU_Slave_GetFunctionCodeAttribute(const MODBUS_RTU_FunctionCodes code)
 #endif
 {
     /// @brief 所有受支持的功能码的 Attribute
-    const static uint8_t attributes[17] = {
+    const static MODBUS_RTU_Data attributes[16] = {
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
         MODBUS_RTU_FUNCTIONCODE_ATTRIBUTE_MULTIPLE, // 0x01
         MODBUS_RTU_FUNCTIONCODE_ATTRIBUTE_MULTIPLE, // 0x02
@@ -40,7 +40,7 @@ uint8_t _MODBUS_RTU_Slave_GetFunctionCodeAttribute(const uint8_t code)
     };
     if (code - 1 >= sizeof(attributes))
     {
-        return 0;
+        return (MODBUS_RTU_FunctionCodeAttribute)0;
     }
-    return attributes[code - 1];
+    return (MODBUS_RTU_FunctionCodeAttribute)attributes[code - 1];
 }

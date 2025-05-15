@@ -1,9 +1,9 @@
 #include "../MODBUS_RTU_Slave.h"
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-bool _Boolean::Communication::MODBUS_RTU_Slave::PraseHeader(const uint8_t *dataPtr, const uint8_t length)
+bool _Boolean::Communication::MODBUS_RTU_Slave::PraseHeader(const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length)
 #else
-bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, const uint8_t *dataPtr, const uint8_t length)
+bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length)
 #endif
 {
     int index;
@@ -18,12 +18,12 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
         MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_DeviceAddress = *dataPtr;
         MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_FunctionCode = (MODBUS_RTU_FunctionCodes) * (dataPtr + 1);
 #ifdef MODBUS_RTU_SLAVE_BIG_ENDIAN
-        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress = *(uint16_t *)(dataPtr + 2);
-        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount = *(uint16_t *)(dataPtr + 4);
+        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress = *(MODBUS_RTU_Register_16Bits *)(dataPtr + 2);
+        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount = *(MODBUS_RTU_Register_16Bits *)(dataPtr + 4);
 #else
-        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress = _ToBigEndian(*(uint16_t *)(dataPtr + 2));
-        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount = _ToBigEndian(*(uint16_t *)(dataPtr + 4));
-#endif
+        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress = _ToBigEndian(*(MODBUS_RTU_Register_16Bits *)(dataPtr + 2));
+        MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount = _ToBigEndian(*(MODBUS_RTU_Register_16Bits *)(dataPtr + 4));
+#endif \
         // 检查报文中的设备地址
         if (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_DeviceAddress != MODBUS_RTU_SLAVE_THISPTR->_DeviceAddress && MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_DeviceAddress != MODBUS_RTU_DEVICE_ADDRESS_BROADCAST)
         {
@@ -68,18 +68,18 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
             // |------|----------------------------------|-----|----------|--------|---------------------|-------------------|---------------------|-----------------------------|-----------------------|-----------------------------|
             // | 0x06 | Write Single Holding Registers   |  W  |  Single  | 16Bits | TargetRegOffset * 2 | RequestAmount * 2 |          0          |              2              |           8           |              8              |
             // |------|----------------------------------|-----|----------|--------|---------------------|-------------------|---------------------|-----------------------------|-----------------------|-----------------------------|
-            // |      |                                  |     |          |        |                     | (RequestAmount +  |                     | Ceiling(Ceiling(            |                       |                             |
-            // | 0x0F | Write Multiple Coils             |  W  | Multiple |  1Bit  | TargetRegOffset / 8 | TargetRegOffset % | TargetRegOffset % 8 | RequestAmount - 1) /        | DataBytesIn_Frame + 9 |              9              |
-            // |      |                                  |     |          |        |                     |  8 - 1) / 8 + 1   |                     | 2) * 2                      |                       |                             |
+            // |      |                                  |     |          |        |                     | (RequestAmount +  |                     | Ceiling(                    |                       |                             |
+            // | 0x0F | Write Multiple Coils             |  W  | Multiple |  1Bit  | TargetRegOffset / 8 | TargetRegOffset % | TargetRegOffset % 8 | RequestAmount  /            | DataBytesIn_Frame + 9 |              9              |
+            // |      |                                  |     |          |        |                     |  8 - 1) / 8 + 1   |                     | 8) * 2                      |                       |                             |
             // |------|----------------------------------|-----|----------|--------|---------------------|-------------------|---------------------|-----------------------------|-----------------------|-----------------------------|
             // | 0x10 | Write Multiple Holding Registers |  W  | Multiple | 16Bits | TargetRegOffset * 2 | RequestAmount * 2 |          0          |      RequestAmount * 2      | DataBytesIn_Frame + 9 |              8              |
             //  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // 检查报文中的功能码是否受支持
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-            uint8_t funcCodeAttribute = _GetFunctionCodeAttribute(MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_FunctionCode);
+            MODBUS_RTU_FunctionCodeAttribute funcCodeAttribute = _GetFunctionCodeAttribute(MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_FunctionCode);
 #else
-            uint8_t funcCodeAttribute = _MODBUS_RTU_Slave_GetFunctionCodeAttribute(MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_FunctionCode);
+            MODBUS_RTU_FunctionCodeAttribute funcCodeAttribute = _MODBUS_RTU_Slave_GetFunctionCodeAttribute(MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_FunctionCode);
 #endif
             if (funcCodeAttribute == 0)
             {
@@ -99,9 +99,9 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
                     if (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress >= MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].FirstRegisterAddress &&
                         MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress < MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].FirstRegisterAddress +
-                                                                           ((MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16) ?
-                                                                                (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].Bytes >> 1) :
-                                                                                (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].Bytes << 3)))
+                                                                                            ((MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS) ?
+                                                                                                 (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].Bytes >> 1) :
+                                                                                                 (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].Bytes << 3)))
 #else
                     if (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress >= MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].FirstRegisterAddress &&
                         MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress < MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].FirstRegisterAddress + (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[index].Bytes >> 1))
@@ -121,7 +121,7 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                 {
                     MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write = (funcCodeAttribute & MODBUS_RTU_FUNCTIONCODE_ATTRIBUTE_WRITE);
                     MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple = (funcCodeAttribute & MODBUS_RTU_FUNCTIONCODE_ATTRIBUTE_MULTIPLE);
-                    int TargetRegOffset = MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress - MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].FirstRegisterAddress;
+                    MODBUS_RTU_RegisterAmount TargetRegOffset = MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress - MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].FirstRegisterAddress;
 
                     if (!MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple)
                     {
@@ -131,39 +131,45 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                     // 计算读取或写入的数据的长度
                     // 计算目标寄存器的偏移地址
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                    if (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits != (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].RegisterType == MODBUS_RTU_REGISTER_TYPE_UINT16))
+                    if (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits != (MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].RegisterType == MODBUS_RTU_REGISTER_TYPE_16BITS))
                     {
                         MODBUS_RTU_SLAVE_THISPTR->_LastResult = MODBUS_RTU_RESULT_REGISTER_TYPE_IS_INCORRECT;
                     }
                     else
                     {
 
-                        MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes =MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount << 1) : (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount + TargetRegOffset - ((TargetRegOffset >> 3) << 3) - 1) / 8 + 1;
-                        MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersMemoryAddressOffset =MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? (TargetRegOffset << 1) : (TargetRegOffset >> 3);
+                        MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ?
+                                                                                              (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount << 1) :
+                                                                                              (((TargetRegOffset + MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount + 7) >> 3) - ((TargetRegOffset) >> 3));
 #else
                     {
                         MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes =(MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount << 1);
-                        MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersMemoryAddressOffset =(TargetRegOffset << 1);
 #endif
 
                         // 检查目标寄存器范围是否超出本机寄存器范围
                         if (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount == 0 ||
-                            (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersMemoryAddressOffset + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes) > MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].Bytes)
+                            (
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
+                                MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? (TargetRegOffset << 1) : (TargetRegOffset >> 3) +
+#else
+                                (TargetRegOffset << 1) +
+#endif
+                                    MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes) > MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].Bytes)
                         {
                             MODBUS_RTU_SLAVE_THISPTR->_LastResult = MODBUS_RTU_RESULT_REGISTER_OUT_OF_RANGE;
                         }
                         else
                         {
                             // 检查 Operation
-                            uint8_t registersAttribute = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write ? MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE : MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE;
+                            MODBUS_RTU_Register_Attribute registersAttribute = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write ? MODBUS_RTU_REGISTER_ATTRIBUTE_WRITABLE : MODBUS_RTU_REGISTER_ATTRIBUTE_READABLE;
                             MODBUS_RTU_ResultCode failedResultCode = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write ? MODBUS_RTU_RESULT_REGISTER_NOT_WRITEABLE : MODBUS_RTU_RESULT_REGISTER_NOT_READABLE;
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
-                            uint16_t rangeStart = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersMemoryAddressOffset >> (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? 1 : 0);
-                            uint16_t rangeEnd = rangeStart + (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes >> (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? 1 : 0));
+                            MODBUS_RTU_RegisterAmount rangeStart = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? (TargetRegOffset) : (TargetRegOffset >> 3);
+                            MODBUS_RTU_RegisterAmount rangeEnd = rangeStart + (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes >> (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? 1 : 0));
 #else
-                            uint16_t rangeStart = TargetRegOffset;
-                            uint16_t rangeEnd = rangeStart + MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount;
+                            MODBUS_RTU_RegisterAmount rangeStart = TargetRegOffset;
+                            MODBUS_RTU_RegisterAmount rangeEnd = rangeStart + MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount;
 #endif
                             bool wrongAttribute = false;
                             for (index = rangeStart; index < rangeEnd; ++index)
@@ -184,14 +190,14 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                                 // 计算读取或写入时请求帧或返回帧中数据的字节数
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
                                 MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? 0 : TargetRegOffset % 8;
-                                uint16_t DataBytesIn_Frame =
+                                MODBUS_RTU_DataLength DataBytesIn_Frame =
                                     MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple ?
                                         (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ?
                                              (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount << 1) :
-                                             ((MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount - 1) >> 3) + 1) :
+                                             ((((MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount + 7) >> 3) + 1) >> 1) << 1) :
                                         2;
 #else
-                                uint16_t DataBytesIn_Frame = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple ? MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes: 2;
+                                MODBUS_RTU_DataLength DataBytesIn_Frame = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple ? MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes: 2;
 #endif
 
 
@@ -201,8 +207,8 @@ bool MODBUS_RTU_Slave_PraseHeader(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
 
                                 MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write ?
-                                                                 ((MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple & MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits) ? 8 : 9)
-                                                                                                                   : DataBytesIn_Frame + (DataBytesIn_Frame & 1) + (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? 5 : 7);
+                                                                                   ((MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple & MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits) ? 8 : 9)
+                                                                                                                                                      : DataBytesIn_Frame + (DataBytesIn_Frame & 1) + (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits ? 5 : 7);
 #else
 
                                 MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write ? (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple ? 8 : 9) : DataBytesIn_Frame + 5;

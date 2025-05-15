@@ -27,9 +27,9 @@ void _MODBUS_RTU_Slave_GenerateExceptionFrame(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE
         return;
     }
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-    uint16_t crcValue = CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
+    MODBUS_RTU_Register_16Bits crcValue = CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
 #else
-    uint16_t crcValue = MODBUS_RTU_Slave_CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
+    MODBUS_RTU_Register_16Bits crcValue = MODBUS_RTU_Slave_CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
 #endif
     MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[3] = crcValue & 0xFF;
     MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[3] = crcValue >> 8;

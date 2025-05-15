@@ -1,9 +1,9 @@
 #include "../MODBUS_RTU_Slave.h"
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-bool _Boolean::Communication::MODBUS_RTU_Slave::ProcessData( const uint8_t *dataPtr, const uint16_t length)
+bool _Boolean::Communication::MODBUS_RTU_Slave::ProcessData(const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length)
 #else
-bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, const uint8_t *dataPtr, const uint16_t length)
+bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, const MODBUS_RTU_Data *dataPtr, const MODBUS_RTU_DataLength length)
 #endif
 {
     // 检查是否已经检查 Header
@@ -25,7 +25,7 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
         else
         {
             // 检查 CRC
-            if ((*(dataPtr + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 2) | ((uint16_t)*(dataPtr + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 1) << 8)) !=
+            if ((*(dataPtr + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 2) | ((MODBUS_RTU_Register_16Bits) * (dataPtr + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 1) << 8)) !=
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
                 CalculateCRC(dataPtr, MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 2))
 #else
@@ -37,20 +37,28 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
             else
             {
 
-                uint8_t *registerPtr = (uint8_t *)MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].Registers + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersMemoryAddressOffset;
+                MODBUS_RTU_RegisterAmount TargetRegOffset = MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RegisterAddress - MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].FirstRegisterAddress;
+                void *registerPtr = (MODBUS_RTU_Data *)MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].Registers +
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
+                                    (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_16Bits
+                                         ? (TargetRegOffset << 1)
+                                         : (TargetRegOffset >> 3));
+#else
+                                    (TargetRegOffset << 1);
+#endif
                 if (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Write) // 写入操作
                 {
-                    uint8_t bytes = 0;
+                    MODBUS_RTU_DataLength bytes = 0;
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
                     bool writeRegister = MODBUS_RTU_SLAVE_THISPTR->_ContiguousRegistersGroupArray[MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetCoiledRegistersAreaIndex].WriteTimes <= 1; // 寄存器区域需要多次写入
-                    if (!writeRegister)																			  // 发送相同数据的次数不足, 需要判断数据是否相同
+                    if (!writeRegister)                                                                                                                                                       // 发送相同数据的次数不足, 需要判断数据是否相同
                     {
-                        uint16_t checkLength = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 4;
+                        MODBUS_RTU_DataLength checkLength = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_RequestFrameBytes - 4;
                         bool copyData = MODBUS_RTU_SLAVE_THISPTR->_LastRecvFrameLength != checkLength;
                         if (!copyData) // 上次有数据且两次数据长度是一样的, 有可能两次数据是一样的
                         {
                             copyData = memcmp(MODBUS_RTU_SLAVE_THISPTR->_LastRecvFrame, dataPtr + 2, MODBUS_RTU_SLAVE_THISPTR->_LastRecvFrameLength) != 0; // 保存的是 [2 ~ -2)内的内存, 即功能码后面到 CRC 前面 (bubsok功能码和 CRC), 0 时内存是一样的
-                            if (!copyData)																				 // 两次数据是一样的
+                            if (!copyData)                                                                                                                 // 两次数据是一样的
                             {
                                 MODBUS_RTU_SLAVE_THISPTR->_Counter_RecvDataIsSame++;
                             }
@@ -77,15 +85,15 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                         {
 #endif
                             bytes = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes;
-                            uint16_t *srcPtr = (uint16_t *)(dataPtr + (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple ? 7 : 4));
-                            uint16_t *dstPtr = (uint16_t *)(registerPtr);
+                            MODBUS_RTU_Register_16Bits *srcPtr = (MODBUS_RTU_Register_16Bits *)(dataPtr + (MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_FunctionCodeAttribute_Multiple ? 7 : 4));
+                            MODBUS_RTU_Register_16Bits *dstPtr = (MODBUS_RTU_Register_16Bits *)(registerPtr);
 #ifdef MODBUS_RTU_SLAVE_BIG_ENDIAN
                             memcpy(dstPtr, srcPtr, MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes);
 #else
-                            for (int i = 0; i < MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount; ++i)
-                            {
-                                *(dstPtr++) = _ToBigEndian(*(srcPtr++));
-                            }
+                    for (int i = 0; i < MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount; ++i)
+                    {
+                        *(dstPtr++) = _ToBigEndian(*(srcPtr++));
+                    }
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
                         }
@@ -99,8 +107,8 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                             // 处理后 offset 位
                             //     dst[1] [0, 8 - offset) 位归零, [8 - offset, 8) 位不变
                             //     dst[1] [0, 8 - offset) 位存入  src[0] (8 - offset, 8) 位
-                            uint8_t *srcPtr = MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame;
-                            uint8_t *dstPtr = registerPtr;
+                            MODBUS_RTU_Register_BIT *srcPtr = (MODBUS_RTU_Register_BIT*)MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame;
+                            MODBUS_RTU_Register_BIT *dstPtr = (MODBUS_RTU_Register_BIT*)registerPtr;
                             bytes = ((MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount - 1) >> 3) + 1;
                             // 准备数据: 将寄存器指定区域置零
                             // Details:
@@ -143,16 +151,16 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                         }
                         else // 写入 1 个 1 Bit
                         {
-                            switch (_ToBigEndian(*(uint16_t *)(dataPtr + 4)))
+                            switch (_ToBigEndian(*(MODBUS_RTU_Register_16Bits *)(dataPtr + 4)))
                             {
                             case 0:
                             {
-                                *registerPtr &= ~(1 << MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset);
+                                *(MODBUS_RTU_Register_BIT*)registerPtr &= ~(1 << MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset);
                                 break;
                             }
                             case 0xFF00:
                             {
-                                *registerPtr |= (1 << MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset);
+                                *(MODBUS_RTU_Register_BIT*)registerPtr |= (1 << MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset);
                                 break;
                             }
                             default:
@@ -171,13 +179,6 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                     {
                         memcpy(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, dataPtr, 6);
                         MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[6] = bytes;
-#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-                        uint16_t crcValue = CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
-#else
-                        uint16_t crcValue = MODBUS_RTU_Slave_CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
-#endif
-                        MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 2] = crcValue & 0xFF;
-                        MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 1] = crcValue >> 8;
                     }
                     else
                     {
@@ -192,15 +193,15 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
 #endif
                         memcpy(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, dataPtr, 2);
                         MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[2] = MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes;
-                        uint16_t *dstPtr = (uint16_t *)(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 3);
-                        uint16_t *srcPtr = (uint16_t *)(registerPtr);
+                        MODBUS_RTU_Register_16Bits *dstPtr = (MODBUS_RTU_Register_16Bits *)(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 3);
+                        MODBUS_RTU_Register_16Bits *srcPtr = (MODBUS_RTU_Register_16Bits *)(registerPtr);
 #ifdef MODBUS_RTU_SLAVE_BIG_ENDIAN
                         memcpy(dstPtr, srcPtr, MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes);
 #else
-                        for (int i = 0; i < MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount; ++i)
-                        {
-                            *(dstPtr++) = _ToBigEndian(*(srcPtr++));
-                        }
+                    for (int i = 0; i < MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount; ++i)
+                    {
+                        *(dstPtr++) = _ToBigEndian(*(srcPtr++));
+                    }
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
                     }
@@ -215,7 +216,7 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                         //     Details: 取 n+1 个字节的低 Offset 位: nTemp ~(0b11111111 << Offset) & nValue
                         //              将 低 Offset 位放到 高 Offset 位上: nTemp <<= (8 - Offset)
                         //              拷贝: nValue |= nTemp;
-                        for (uint8_t *ptr = MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 5; ptr < MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 5 + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes; ++ptr)
+                        for (MODBUS_RTU_Register_BIT *ptr = MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 5; ptr < MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 5 + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes; ++ptr)
                         {
                             *ptr >>= MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset;
                             *ptr |= (*(ptr + 1) & ~(0xFF << MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset)) << (8 - MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBitOffset);
@@ -226,18 +227,18 @@ bool MODBUS_RTU_Slave_ProcessData(MODBUS_RTU_Slave *MODBUS_RTU_SLAVE_THISPTR, co
                             *(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame + 4 + MODBUS_RTU_SLAVE_THISPTR->_Prase_Calculate_TargetRegistersBytes) &= ~(0xFF << (MODBUS_RTU_SLAVE_THISPTR->_Prase_RequestFrame_RequestAmount & 0b111));
                         }
                     }
-#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-                    uint16_t crcValue = CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
-#else
-                    uint16_t crcValue = MODBUS_RTU_Slave_CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, 3);
-#endif
-                    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 2] = crcValue & 0xFF;
-                    MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 1] = crcValue >> 8;
 #endif
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_WRITE_SEVEIAL_TIMES
                     MODBUS_RTU_SLAVE_THISPTR->_Counter_RecvDataIsSame = 0;
 #endif
                 }
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
+                MODBUS_RTU_Register_16Bits crcValue = CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 2);
+#else
+                MODBUS_RTU_Register_16Bits crcValue = MODBUS_RTU_Slave_CalculateCRC(MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame, MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 2);
+#endif
+                MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 2] = crcValue & 0xFF;
+                MODBUS_RTU_SLAVE_THISPTR->_ReturnFrame[MODBUS_RTU_SLAVE_THISPTR->_ReturnFrameLength - 1] = crcValue >> 8;
                 MODBUS_RTU_SLAVE_THISPTR->_LastResult = MODBUS_RTU_RESULT_OK;
             }
         }

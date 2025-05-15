@@ -10,7 +10,7 @@
 #define MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
 
 /// @brief 启用 Feature: C++ Class
-// #define MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
+#define MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
 
 /// @brief 调试模式, C++ Class 模式下所有成员均可访问
 #define MODBUS_RTU_SLAVE_DEBUG
@@ -56,6 +56,24 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+
+typedef uint8_t MODBUS_RTU_Data;
+typedef uint8_t MODBUS_RTU_WriteTimeCounter;
+typedef uint8_t MODBUS_RTU_DeviceAddress;
+typedef uint8_t MODBUS_RTU_DataLength;
+typedef uint8_t ContiguousRegistersLength;
+typedef uint16_t MODBUS_RTU_Register_16Bits;
+#ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_COIL
+typedef unsigned char MODBUS_RTU_Register_BIT;
+#endif
+typedef uint16_t MODBUS_RTU_RegisterAddress;
+typedef uint16_t MODBUS_RTU_RegisterAmount;
+typedef uint16_t MODBUS_RTU_MemoryAddressOffset;
+typedef uint8_t MODBUS_RTU_BitsOffset;
+
 #include "string.h"
+#include <QDebug>
 
 #endif

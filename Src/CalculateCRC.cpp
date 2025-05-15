@@ -2,19 +2,19 @@
 
 #if (MODBUS_RTU_SLAVE_CRC_METHOD == 1) /* 半字节CRC16(Dow_右移逆序) 0xA001 余式表*/
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-uint16_t _Boolean::Communication::MODBUS_RTU_Slave::CalculateCRC(const uint8_t *data, const uint16_t length)
+MODBUS_RTU_Register_16Bits _Boolean::Communication::MODBUS_RTU_Slave::CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length)
 #else
-uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t length)
+MODBUS_RTU_Register_16Bits MODBUS_RTU_Slave_CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length)
 #endif
 {
-    const static uint16_t CRC_16_Tab[] = {
+    const static MODBUS_RTU_Register_16Bits CRC_16_Tab[] = {
                                                  0x0000, 0xCC01, 0xD801, 0x1400,
                                                  0xF001, 0x3C00, 0x2800, 0xE401,
                                                  0xA001, 0x6C00, 0x7800, 0xB401,
                                                  0x5000, 0x9C01, 0x8801, 0x4400};
-    uint16_t crc = 0xffff;
-    uint16_t i;
-    uint8_t ch;
+    MODBUS_RTU_Register_16Bits crc = 0xffff;
+    MODBUS_RTU_DataLength i;
+    MODBUS_RTU_Data ch;
 
     for (i = 0; i < length; i++)
     {
@@ -29,12 +29,12 @@ uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t lengt
 
 
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-uint16_t _Boolean::Communication::MODBUS_RTU_Slave::CalculateCRC(const uint8_t *data, const uint16_t length)
+MODBUS_RTU_Register_16Bits _Boolean::Communication::MODBUS_RTU_Slave::CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length)
 #else
-uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t length)
+MODBUS_RTU_Register_16Bits MODBUS_RTU_Slave_CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length)
 #endif
 {
-    const static uint16_t auchCRC[] = {
+    const static MODBUS_RTU_Register_16Bits auchCRC[] = {
                                               0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
                                               0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,
                                               0xCC01, 0x0CC0, 0x0D80, 0xCD41, 0x0F00, 0xCFC1, 0xCE81, 0x0E40,
@@ -67,9 +67,9 @@ uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t lengt
                                               0x4E00, 0x8EC1, 0x8F81, 0x4F40, 0x8D01, 0x4DC0, 0x4C80, 0x8C41,
                                               0x4400, 0x84C1, 0x8581, 0x4540, 0x8701, 0x47C0, 0x4680, 0x8641,
                                               0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040};
-    uint16_t CRC = 0xffff; // 0xff与数据异或就相当于取反，故只需要一开始把CRC初始值设置为0xffff即可
-    uint8_t index;
-    for (uint16_t i = 0; i < length; i++)
+    MODBUS_RTU_Register_16Bits CRC = 0xffff; // 0xff与数据异或就相当于取反，故只需要一开始把CRC初始值设置为0xffff即可
+    MODBUS_RTU_Data index;
+    for (MODBUS_RTU_DataLength i = 0; i < length; i++)
     {
         index = (CRC & 0xFF) ^ data[i]; // 取上一字节的CRC低八位，与本字节异或
         CRC >>= 8;						// 取上一字节的高八位
@@ -80,14 +80,14 @@ uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t lengt
 
 #else
 #ifdef MODBUS_RTU_SLAVE_ENABLE_FEATURE_CPLUSPLUS_CLASS
-uint16_t _Boolean::Communication::MODBUS_RTU_Slave::CalculateCRC(const uint8_t *data, const uint16_t length)
+MODBUS_RTU_Register_16Bits _Boolean::Communication::MODBUS_RTU_Slave::CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length)
 #else
-uint16_t MODBUS_RTU_Slave_CalculateCRC(const uint8_t *data, const uint16_t length)
+MODBUS_RTU_Register_16Bits MODBUS_RTU_Slave_CalculateCRC(const MODBUS_RTU_Data *data, const MODBUS_RTU_DataLength length)
 #endif
 {
-    uint16_t crc = 0xFFFF;
-    uint8_t j;
-    for (uint16_t i = 0; i < length; i++)
+    MODBUS_RTU_Register_16Bits crc = 0xFFFF;
+    MODBUS_RTU_Data j;
+    for (MODBUS_RTU_DataLength i = 0; i < length; i++)
     {
         crc ^= data[i]; // 将字节与当前 CRC 值异或
         // 对 CRC 值进行 8 次位移和异或操作
